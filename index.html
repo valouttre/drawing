@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8"><title>Dessine & Vote</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Jeu de dessin multijoueur en ligne : dessinez, puis votez pour le meilleur !">
+<link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;🎨&lt;/text&gt;&lt;/svg&gt;">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+</head><body>
+
+
+<div class="s on" id="home">
+<h1>🎨 Dessine & Vote</h1>
+<p class="c mu">Crée une partie, partage le code ou le lien, dessinez ensemble puis votez (pas pour son propre dessin !).</p>
+<div class="card"><h2>1. Ton profil</h2>
+<label>Pseudo</label><input id="nick" maxlength="14" placeholder="Ton pseudo" style="width:220px">
+<label style="margin-top:10px">Icône</label><div class="ag" id="avs"></div>
+<label style="margin-top:10px">Couleur</label><div class="ag" id="cls"></div></div>
+<div class="card"><h2>2. Jouer</h2><div class="row">
+<button class="p big" onclick="create()">➕ Créer une partie</button>
+<span class="mu">ou</span><input id="jc" maxlength="8" placeholder="CODE" style="width:120px;text-transform:uppercase;letter-spacing:3px">
+<button class="big" onclick="joinG()">Rejoindre</button></div><p id="herr" style="color:#e03"></p></div>
+</div>
+
+<div class="s" id="lobby"><div class="c"><div class="mu">Code de la partie</div><div id="code"></div>
+<button onclick="copyC()">📋 Copier le code</button> <button onclick="copyL()">🔗 Copier le lien</button></div>
+<div class="card"><h2>Joueurs</h2><div id="lp"></div></div>
+<div class="card" id="gs"></div>
+<div class="card" id="hs"><h2>Réglages (hôte)</h2><div class="row">
+<div><label>Temps : <b id="tv">90</b> s</label><input type="range" id="time" min="15" max="300" step="5" value="90" oninput="tv.textContent=this.value;upd()"></div>
+<div><label>Manches</label><input type="number" id="rounds" min="1" max="10" value="3" style="width:70px" oninput="upd()"></div>
+<div><label>Thème perso (sinon aléatoire)</label><input id="custom" maxlength="40" placeholder="ex: un chat pirate" oninput="upd()"></div></div>
+</div>
+<div class="c"><button class="p big" id="go" onclick="startG()">▶ Lancer la partie</button><p class="mu" id="gw"></p></div></div>
+
+<div class="s" id="draw">
+<div id="bar"><div>Manche <b id="rn"></b> : <b id="word" style="color:var(--ac)"></b></div><span id="timer"></span><button class="p" onclick="submitD()">✔ Terminer</button></div>
+<div class="card"><div id="tg" class="tg"></div></div>
+<div class="card"><div class="row"><span class="mu">Couleurs</span>
+<input type="color" id="col" value="#000000" title="Couleur 1"><input type="color" id="col2" value="#ffffff" title="Couleur 2 (remplissage, dégradé)"><button onclick="swap()" title="Échanger">⇄</button>
+<input id="hex" value="#000000" maxlength="7" style="width:84px" title="Code hexa"><select id="pset" onchange="rpal()"></select>
+<span class="mu">clic droit sur une couleur = couleur 2</span></div>
+<div id="pal" class="pal" style="margin:8px 0"></div>
+<div class="row"><span class="mu">Récentes</span><span id="rec" class="pal"></span></div></div>
+<div class="card row">
+<span>Taille <b id="szv">6</b> <input type="range" id="size" min="1" max="120" value="6" oninput="szv.textContent=this.value"></span>
+<span>Opacité <b id="opv">100</b>% <input type="range" id="opa" min="5" max="100" value="100" oninput="opv.textContent=this.value"></span>
+<span>Dureté <input type="range" id="hard" min="0" max="100" value="30"></span>
+<span>Tolérance 🪣 <input type="range" id="tol" min="0" max="100" value="25"></span>
+<label>Formes <select id="smode"><option value="o">contour</option><option value="p">plein</option><option value="b">contour + plein (couleur 2)</option><option value="g">dégradé 1→2</option></select></label>
+<label>Miroir <select id="sym"><option value="0">aucun</option><option value="1">vertical</option><option value="2">horizontal</option><option value="3">4 axes</option></select></label>
+<label><input type="checkbox" id="sm"> lissage</label>
+<span>Zoom <input type="range" id="zm" min="25" max="300" value="100" oninput="zv=+this.value;zoom(zv)"><button onclick="zv=0;zm.value=100;zoom(0)">Ajuster</button></span>
+<button onclick="undo()" title="Ctrl+Z">↶</button><button onclick="redo()" title="Ctrl+Y">↷</button><button onclick="flip(1)">⇋ Miroir H</button><button onclick="flip(0)">⇅ Miroir V</button>
+<button onclick="bg()">🎨 Fond couleur 1</button><button onclick="png()">💾 PNG</button><button onclick="clr()">🗑 Tout effacer</button></div>
+<div class="card row"><b>Canvas :</b>
+<input type="number" id="cw" value="800" step="any" style="width:80px" title="Largeur"> ×
+<input type="number" id="ch" value="600" step="any" style="width:80px" title="Hauteur">
+<select id="cu"><option value="px">pixels</option><option value="po">pouces</option><option value="cm">cm</option><option value="mm">mm</option></select>
+<button class="p" onclick="applyC()">Appliquer</button><span class="mu" id="szr"></span>
+<button onclick="pre(800,600,'px')">800×600</button><button onclick="pre(512,512,'px')">512×512</button><button onclick="pre(1280,720,'px')">16:9</button>
+<button onclick="pre(21,29.7,'cm')">A4</button><button onclick="pre(4,6,'po')">4×6 po</button><button onclick="pre(400,800,'px')">Portrait</button></div>
+<div id="wrap"><canvas id="cv"></canvas></div></div>
+
+<div class="s" id="wait"><div class="card c"><h2 id="wt">Dessin envoyé ✔</h2><p class="mu">On attend les autres joueurs…</p><div id="wl"></div></div></div>
+
+<div class="s" id="vote"><h2 class="c">🗳 Vote pour ton préféré</h2><p class="c mu">Thème : <b id="vword"></b> — ton dessin est masqué, les auteurs sont secrets.</p>
+<div class="grid" id="vg"></div><div class="c" style="margin-top:14px"><button class="p big" id="vok" disabled onclick="castVote()">Valider mon vote</button><p id="vs" class="mu"></p></div></div>
+
+<div class="s" id="res"><h2 class="c" id="rt"></h2><div class="grid" id="rg"></div>
+<div class="card"><h2>Classement</h2><div id="lb"></div></div>
+<div class="c"><button class="p big" id="nx" onclick="nextR()"></button><p class="mu" id="nw"></p></div></div>
+
+<div class="s" id="fin"><h1>🏆 Résultat final</h1><div class="pod" id="pod"></div><div class="card" id="flb"></div>
+<div class="c"><button class="p big" id="rp" onclick="replay()">Rejouer</button><p class="mu" id="rw"></p></div></div>
+<div id="toast"></div>
+<script src="app.js"></script>
+</body></html>
